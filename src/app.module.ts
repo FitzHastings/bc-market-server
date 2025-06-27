@@ -26,6 +26,7 @@ import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { FileModule } from './file/file.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { BconomyModule } from './bconomy/bconomy.module';
 
 @Module({
     imports: [
@@ -38,7 +39,8 @@ import { UserModule } from './user/user.module';
         CommonModule,
         FileModule,
         AuthModule,
-        UserModule
+        UserModule,
+        BconomyModule
     ],
     controllers: [AppController],
     providers: [AppService]

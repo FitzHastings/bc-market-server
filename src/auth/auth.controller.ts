@@ -17,14 +17,14 @@ import { Body, Controller, Get, Post, Request, UnauthorizedException, UseGuards 
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 import { UserService } from '../user/user.service';
+import { User } from '../user/entities/user.entity';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtGuard } from './guards/jwt.guard';
 import { AccessTokenDto } from './dto/access-token.dto';
 import { SessionExtended } from './interfaces/session-extended.interface';
-import {Identity} from "./decorators/identity.decorator";
-import {User} from "../user/entities/user.entity";
+import { Identity } from './decorators/identity.decorator';
 
 /**
  * AuthController
