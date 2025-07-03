@@ -13,7 +13,15 @@
    limitations under the License.
 */
 
-export class BconomyMessage {
-    public json: string;
-    public pingId: number;
+import { ListingData } from './listing-data';
+
+export interface RichGameLog {
+    id: number;
+    date: string;
+    senderBcId: number,
+    receiverBcId: number,
+    factionId: number,
+    itemId: number,
+    type: string,
+    data: ListingData
 }

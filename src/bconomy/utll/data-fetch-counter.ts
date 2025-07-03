@@ -13,7 +13,10 @@
    limitations under the License.
 */
 
-export class BconomyMessage {
-    public json: string;
-    public pingId: number;
+export class DataFetchCounter {
+    private count = 5;
+
+    public next(): number {
+        return this.count++;
+    }
 }

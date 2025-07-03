@@ -13,7 +13,27 @@
    limitations under the License.
 */
 
-export class BconomyMessage {
-    public json: string;
-    public pingId: number;
+import { Column, Entity } from 'typeorm';
+
+import { GeneralEntity } from '../../common/entities/general.entity';
+
+@Entity('trimmed_market_log')
+export class TrimmedGameLog extends GeneralEntity {
+    @Column({ name: 'sender_bc_id' })
+    public senderBcId: number;
+
+    @Column({ name: 'recepient_bc_id' })
+    public recipientBcId: number;
+
+    @Column({ name: 'item_id' })
+    public itemId: number;
+
+    @Column({ name: 'json' })
+    public date: Date;
+
+    @Column()
+    public amount: number;
+
+    @Column()
+    public price: number;
 }

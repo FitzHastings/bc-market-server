@@ -13,7 +13,7 @@
    limitations under the License.
 */
 
-export class BconomyMessage {
-    public json: string;
-    public pingId: number;
+export interface PendingRequest<T> {
+    resolve: (value: T) => void;
+    reject: (reason?: never) => void;
 }

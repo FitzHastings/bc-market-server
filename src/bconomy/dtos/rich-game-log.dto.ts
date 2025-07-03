@@ -13,7 +13,8 @@
    limitations under the License.
 */
 
-export class BconomyMessage {
-    public json: string;
-    public pingId: number;
+import { RichGameLog } from '../interfaces/rich-game-log';
+
+export class RichGameLogDto {
+    public gameLog: RichGameLog;
 }
