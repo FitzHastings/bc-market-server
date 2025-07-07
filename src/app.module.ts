@@ -27,6 +27,7 @@ import { FileModule } from './file/file.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { BconomyModule } from './bconomy/bconomy.module';
+import { MarketModule } from './market/market.module';
 
 @Module({
     imports: [
@@ -40,7 +41,8 @@ import { BconomyModule } from './bconomy/bconomy.module';
         FileModule,
         AuthModule,
         UserModule,
-        BconomyModule
+        BconomyModule,
+        MarketModule
     ],
     controllers: [AppController],
     providers: [AppService]

@@ -19,21 +19,24 @@ import { GeneralEntity } from '../../common/entities/general.entity';
 
 @Entity('trimmed_market_log')
 export class TrimmedGameLog extends GeneralEntity {
-    @Column({ name: 'sender_bc_id' })
+    @Column({ name: 'sender_bc_id', nullable: true })
     public senderBcId: number;
 
-    @Column({ name: 'recepient_bc_id' })
+    @Column({ name: 'recepient_bc_id', nullable: true })
     public recipientBcId: number;
+
+    @Column({ name: 'bc_id' })
+    public bcId: number;
 
     @Column({ name: 'item_id' })
     public itemId: number;
 
-    @Column({ name: 'json' })
+    @Column({ name: 'date' })
     public date: Date;
 
     @Column()
     public amount: number;
 
-    @Column()
-    public price: number;
+    @Column('decimal', { precision: 21, scale: 0, default: 0 })
+    public price: string;
 }

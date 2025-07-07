@@ -14,11 +14,14 @@
 */
 
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { BconomyService } from './bconomy.service';
+import { TrimmedGameLog } from './entities/trimmed-game-log.entity';
 
 @Module({
     providers: [BconomyService],
-    exports: [BconomyService]
+    exports: [BconomyService],
+    imports: [TypeOrmModule.forFeature([TrimmedGameLog])]
 })
 export class BconomyModule {}

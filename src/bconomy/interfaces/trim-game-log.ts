@@ -19,12 +19,12 @@ import { TrimmedGameLog } from '../entities/trimmed-game-log.entity';
 export function trimGameLog(log: RichGameLogDto): Partial<TrimmedGameLog> {
     const { gameLog } = log;
     return {
-        id: gameLog.id,
+        bcId: gameLog.id,
         senderBcId: gameLog.senderBcId,
         recipientBcId: gameLog.receiverBcId,
         itemId: gameLog.itemId,
         date: new Date(gameLog.date),
-        amount: gameLog.data.amount,
-        price: gameLog.data.listingPrice
+        amount: gameLog.data?.amount,
+        price: gameLog.data?.listingPrice?.toString()
     };
 }
