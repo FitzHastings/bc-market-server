@@ -34,8 +34,8 @@ export class TrimmedGameLog extends GeneralEntity {
     @Column({ name: 'date' })
     public date: Date;
 
-    @Column()
-    public amount: number;
+    @Column('decimal', { precision: 21, scale: 0, default: 0 })
+    public amount: string;
 
     @Column('decimal', { precision: 21, scale: 0, default: 0 })
     public price: string;

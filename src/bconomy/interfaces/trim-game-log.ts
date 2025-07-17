@@ -24,7 +24,7 @@ export function trimGameLog(log: RichGameLogDto): Partial<TrimmedGameLog> {
         recipientBcId: gameLog.receiverBcId,
         itemId: gameLog.itemId,
         date: new Date(gameLog.date),
-        amount: gameLog.data?.amount,
+        amount: gameLog.data?.amount?.toString(),
         price: gameLog.data?.listingPrice?.toString()
     };
 }
