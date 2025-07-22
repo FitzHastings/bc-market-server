@@ -21,7 +21,7 @@ import { TrimmedGameLog } from './entities/trimmed-game-log.entity';
 
 @Module({
     providers: [BconomyService],
-    exports: [BconomyService],
+    exports: [BconomyService, TypeOrmModule],
     imports: [TypeOrmModule.forFeature([TrimmedGameLog])]
 })
 export class BconomyModule {}

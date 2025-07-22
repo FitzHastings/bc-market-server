@@ -1,7 +1,7 @@
 
 import * as process from 'node:process';
 
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -14,11 +14,11 @@ import { trimGameLog } from './interfaces/trim-game-log';
 import { TrimmedGameLog } from './entities/trimmed-game-log.entity';
 
 @Injectable()
-export class BconomyService implements OnApplicationBootstrap {
+export class BconomyService implements OnModuleInit {
     public constructor(@InjectRepository(TrimmedGameLog) private readonly trimmedGameLogRepository: Repository<TrimmedGameLog>) {
     }
 
-    public async onApplicationBootstrap(): Promise<void> {
+    public async onModuleInit(): Promise<void> {
         if (process.env.BCONOMY_SCRAPE_DATA === 'true')
             await this.migrateLogs();
     }
@@ -41,8 +41,8 @@ export class BconomyService implements OnApplicationBootstrap {
                     await this.fetchItemLogsPage(j, i);
         } catch (error) {
             report.error(
-                morse.red('Bconomy Service: Failed to migrate logs'),
-                morse.red(
+                morse.red('Bconomy Service: Failed to migrate logs')
+                + morse.red(
                     `Error: ${error.message}\n` +
                     `Stack: ${error.stack}`
                 )
@@ -58,40 +58,52 @@ export class BconomyService implements OnApplicationBootstrap {
             + morse.magenta(`#${page}`)
         );
 
-        const res = await fetch(`${process.env.BCONOMY_API_URL}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': process.env.BCONOMY_API_KEY
-            },
-            body: JSON.stringify({
-                type: 'richLogsByIdType',
-                idType: 'itemId',
-                id: itemId,
-                page
-            })
-        });
+        try {
+            const res = await fetch(`${process.env.BCONOMY_API_URL}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.BCONOMY_API_KEY
+                },
+                body: JSON.stringify({
+                    type: 'richLogsByIdType',
+                    idType: 'itemId',
+                    id: itemId,
+                    page
+                })
+            });
 
-        const processed: RichGameLogDto[] = await res.json();
-        for (const log of processed) {
-            const trimmed = trimGameLog(log);
+            const processed: RichGameLogDto[] = await res.json();
+            for (const log of processed) {
+                const trimmed = trimGameLog(log);
 
-            // Awaiting to throttle down the scraping
-            // eslint-disable-next-line no-await-in-loop
-            if (await this.trimmedGameLogRepository.findOne({ where: { bcId: trimmed.bcId } }))
-                return;
+                // Awaiting to throttle down the scraping
+                // eslint-disable-next-line no-await-in-loop
+                if (await this.trimmedGameLogRepository.findOne({ where: { bcId: trimmed.bcId } }))
+                    return;
 
-            report.debug(
-                morse.grey('Bconomy Service: Saving trimmed log for item ')
-                + morse.magenta(`#${trimmed.itemId}`)
+                report.debug(
+                    morse.grey('Bconomy Service: Saving trimmed log for item ')
+                    + morse.magenta(`#${trimmed.itemId}`)
+                );
+                // Awaiting to throttle down the scraping
+                // eslint-disable-next-line no-await-in-loop
+                await this.trimmedGameLogRepository.save(trimmed);
+
+                // Delaying not to overload the API
+                // eslint-disable-next-line no-await-in-loop
+                await delay(500);
+            }
+        } catch (error) {
+            report.error(
+                morse.red('Bconomy Service: Failed to fetch logs for item ')
+                + morse.magenta(`#${itemId}`)
+                + morse.red(' from page')
+                + morse.magenta(`#${page}`)
+                + morse.red(
+                    `\nError: ${error.message}\n` + `Stack: ${error.stack}`
+                )
             );
-            // Awaiting to throttle down the scraping
-            // eslint-disable-next-line no-await-in-loop
-            await this.trimmedGameLogRepository.save(trimmed);
-
-            // Delaying not to overload the API
-            // eslint-disable-next-line no-await-in-loop
-            await delay(500);
         }
     }
 }
