@@ -1,66 +1,109 @@
 
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { WebSocket } from 'ws';
+import * as process from 'node:process';
 
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { delay } from '../common/utils/delay';
 import { report } from '../winston.config';
+import { morse } from '../common/utils/morse';
 
-import { SessionResponseDto } from './dtos/session-response.dto';
-import { parseBconomyMessage } from './utll/parse-bconomy-message';
+import { RichGameLogDto } from './dtos/rich-game-log.dto';
+import { trimGameLog } from './interfaces/trim-game-log';
+import { TrimmedGameLog } from './entities/trimmed-game-log.entity';
 
 @Injectable()
-export class BconomyService implements OnApplicationBootstrap {
-    private ws: WebSocket;
-    private isConnected: boolean = false;
-
-    public onApplicationBootstrap(): void {
-        this.connect();
+export class BconomyService implements OnModuleInit {
+    public constructor(@InjectRepository(TrimmedGameLog) private readonly trimmedGameLogRepository: Repository<TrimmedGameLog>) {
     }
 
-    private connect(): void {
-        const headers = {
-            'Cookie': 'connect.sid=s(token); discordCsrState=(some weird thing)'
-        };
+    public async onModuleInit(): Promise<void> {
+        if (process.env.BCONOMY_SCRAPE_DATA === 'true')
+            await this.migrateLogs();
+    }
 
-        this.ws = new WebSocket('wss://bconomy.net/socket.io/?EIO=4&transport=websocket', {
-            headers
-        });
+    public async migrateLogs(): Promise<void> {
+        report.info(morse.cyan('Bconomy Service: Performing Logs Migration'));
+        try {
+            const scapeStart = parseInt(process.env.BCONOMY_SCRAPE_START);
+            const scrapeEnd = parseInt(process.env.BCONOMY_SCRAPE_END);
 
-        this.ws.on('open', () => {
-            this.isConnected = true;
-            report.info('Connected to WebSocket server');
-            // Send token immediately after connection
-            if (this.ws.readyState === WebSocket.OPEN) 
-                this.ws.send(`40${JSON.stringify({ token: 'Bconomy Public Web Client' })}`);
-        });
+            report.info(morse.cyan('Bconomy Service: Fetching logs from page ')
+                + morse.magenta(`${scapeStart}`)
+                + morse.cyan(' to page ')
+                + morse.magenta(`${scrapeEnd}`)
+            );
 
-        this.ws.on('message', (data: WebSocket.RawData) => {
-            try {
-                const messageString = data.toString();
-                const message = parseBconomyMessage(messageString);
-                if (message.pingId === 0)
-                    setTimeout(() => this.ws.send(`422${JSON.stringify(['dataFetch', { type: 'marketPreview' }])}`), 1000);
+            for (let i: number = scapeStart; scrapeEnd; i++)
+                for (let j = 0; j <= 164; j++)
+                    // eslint-disable-next-line no-await-in-loop
+                    await this.fetchItemLogsPage(j, i);
+        } catch (error) {
+            report.error(
+                morse.red('Bconomy Service: Failed to migrate logs')
+                + morse.red(
+                    `Error: ${error.message}\n` +
+                    `Stack: ${error.stack}`
+                )
+            );
+        }
+    }
 
-                if (message.pingId === 2) {
-                    report.info('Received Ping from Bconomy, ponging');
-                    this.ws.send(3);
-                }
+    public async fetchItemLogsPage(itemId: number, page: number): Promise<void> {
+        report.info(
+            morse.cyan('Bconomy Service: Fetching logs for item ')
+            + morse.magenta(`#${itemId}`)
+            + morse.cyan(' from page ')
+            + morse.magenta(`#${page}`)
+        );
 
-                const response = JSON.parse(message.json);
-                if (response.sid && this.ws.readyState === WebSocket.OPEN)
-                    report.info(`Received session ID: ${response.sid}`);
-            } catch (error) {
-                report.error('Error parsing message:', error);
+        try {
+            const res = await fetch(`${process.env.BCONOMY_API_URL}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.BCONOMY_API_KEY
+                },
+                body: JSON.stringify({
+                    type: 'richLogsByIdType',
+                    idType: 'itemId',
+                    id: itemId,
+                    page
+                })
+            });
+
+            const processed: RichGameLogDto[] = await res.json();
+            for (const log of processed) {
+                const trimmed = trimGameLog(log);
+
+                // Awaiting to throttle down the scraping
+                // eslint-disable-next-line no-await-in-loop
+                if (await this.trimmedGameLogRepository.findOne({ where: { bcId: trimmed.bcId } }))
+                    return;
+
+                report.debug(
+                    morse.grey('Bconomy Service: Saving trimmed log for item ')
+                    + morse.magenta(`#${trimmed.itemId}`)
+                );
+                // Awaiting to throttle down the scraping
+                // eslint-disable-next-line no-await-in-loop
+                await this.trimmedGameLogRepository.save(trimmed);
+
+                // Delaying not to overload the API
+                // eslint-disable-next-line no-await-in-loop
+                await delay(500);
             }
-        });
-
-        this.ws.on('error', (error) => {
-            this.isConnected = false;
-            report.error('WebSocket error:', error);
-        });
-
-        this.ws.on('close', () => {
-            this.isConnected = false;
-            report.warn('WebSocket connection closed');
-        });
+        } catch (error) {
+            report.error(
+                morse.red('Bconomy Service: Failed to fetch logs for item ')
+                + morse.magenta(`#${itemId}`)
+                + morse.red(' from page')
+                + morse.magenta(`#${page}`)
+                + morse.red(
+                    `\nError: ${error.message}\n` + `Stack: ${error.stack}`
+                )
+            );
+        }
     }
 }
